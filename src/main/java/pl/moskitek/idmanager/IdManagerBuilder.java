@@ -1,11 +1,12 @@
 package pl.moskitek.idmanager;
 
+import pl.moskitek.idmanager.managers.java.JavaBitSetIdManager;
 import pl.moskitek.idmanager.managers.longmgr.LongIdManagerForMaximum;
 import pl.moskitek.idmanager.managers.longmgr.LongIdManagerForMinimum;
 
 public class IdManagerBuilder {
 	public static enum Organisation{
-		longBits, intBits, JavaBased
+		longBits, intBits, javaBased
 	}
 	public static enum Purpose{
 		Minimum, Maximum, MinMax, 
@@ -35,6 +36,7 @@ public class IdManagerBuilder {
 		return switch (organization) {
 			case longBits -> buildLong();
 			case intBits -> throw new IdManagerException("Not yet implemented");
+			case javaBased -> new JavaBitSetIdManager();
 			default -> throw new IdManagerException("Unexpected value: " + organization);
 		};
 	}

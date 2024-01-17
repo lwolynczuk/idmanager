@@ -1,6 +1,8 @@
-package pl.moskitek.idmanager;
+package pl.moskitek.idmanager.managers.java;
 
 import java.util.BitSet;
+
+import pl.moskitek.idmanager.IdManager;
 
 /**
  * Simple implementation with Java BitSet implementation.
