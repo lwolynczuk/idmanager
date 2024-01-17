@@ -17,7 +17,7 @@ the gaps (with some information about its limitations):
 ## LinkedList
 
 ```mermaid
-  graph TD;
+  graph LR;
       1-->2;
       2-->3;
       3-->4;
@@ -31,7 +31,7 @@ the gaps (with some information about its limitations):
 LinkedList with removed items:
 
 ```mermaid
-  graph TD;
+  graph LR;
       1-->2;
       2-->4;
       4-->5;
