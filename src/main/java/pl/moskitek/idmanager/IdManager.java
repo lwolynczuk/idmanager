@@ -1,6 +1,6 @@
 package pl.moskitek.idmanager;
 
-public interface IdManager {
+public interface IdManager {	
 	void free(int id);
 	void free(int[] ids);
 	int allocate();
@@ -14,4 +14,8 @@ public interface IdManager {
 	void allocateConrete(int id);
 	
 	public IdManager cloneTree( ) throws Exception;
+	
+	public static IdManagerBuilder builder() {
+		return new IdManagerBuilder();
+	}
 }
