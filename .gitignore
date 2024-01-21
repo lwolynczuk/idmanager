@@ -27,3 +27,7 @@ replay_pid*
 /.classpath
 /.settings
 *.prefs
+/.idea
+/.asciidoctor
+/diag-*.png
+/README.html
