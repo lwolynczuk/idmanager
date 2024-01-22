@@ -30,6 +30,7 @@ the gaps (with some information about its limitations):
 === LinkedList
 
 [mermaid]
+ifdef::env-github[[source,mermaid]]
 ....
   graph LR;
       1-->2;
@@ -45,6 +46,7 @@ the gaps (with some information about its limitations):
 LinkedList with removed items:
 
 [mermaid]
+ifdef::env-github[[source,mermaid]]
 ....
   graph LR;
       1-->2;
