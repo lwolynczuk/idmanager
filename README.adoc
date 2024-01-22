@@ -98,14 +98,14 @@ or:
 BitSet with removed items:
 
 !===
-| 1, 1, 1 | 0, 1, 0 | 0, 1, 1
+| 1,1,1 | 0,1,0 | 0,1,1
 
 !===
 
 === BitSet with additional data structure to store removed elements
 
 !===
-| 1, 1, 1 | 1, 1, 1 | 1, 1, 1
+| 1,1,1 | 1,1,1 | 1,1,1
 
 !===
 
