@@ -106,12 +106,74 @@ BitSet with removed items:
 
 !===
 | 1,1,1 | 1,1,1 | 1,1,1
-
 !===
 
+example linked list:
+
+[mermaid]
+ifdef::env-github[[source,mermaid]]
+....
+  graph LR;
+      *["* -> []"]
+....
+
+And after removing elemenst
+
+!===
+| 1,1,0 | 1,1,0 | 0,1,1
+!===
+
+example linked list:
+
+[mermaid]
+ifdef::env-github[[source,mermaid]]
+....
+  graph LR;
+      3 --> 6;
+      6 --> 7;
+....
+
+=== Performance comparison
 
 == BitSet Tree
 == Usage
 == API
+
+API of IdMAnager is very simple. Library offers few methods for manipulation of
+data structure nad few simple way to instantiate IdManagers as tehre are more
+than one version (depending on purpose)
+
+
+=== Instantiate IdManager
+
+[source,java]
+----
+include::./src/test/java/pl/moskitek/idmanager/usecase/instantiate/DefaultIdManager.java[]
+----
+
+Description for available options below:
+
+[source,java]
+.Ogranisation
+----
+include::./src/main/java/pl/moskitek/idmanager/Organisation.java[]
+----
+
+
+[source,java]
+.Purpose
+----
+include::./src/main/java/pl/moskitek/idmanager/Organisation.java[]
+----
+
+=== IdManager Operations
+
+[source,java]
+.Purpose
+----
+include::./src/main/java/pl/moskitek/idmanager/IdManager.java[]
+----
+
+
 == Performance tests
 
