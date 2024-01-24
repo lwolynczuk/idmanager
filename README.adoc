@@ -136,6 +136,85 @@ ifdef::env-github[[source,mermaid]]
 === Performance comparison
 
 == BitSet Tree
+
+For description of the algorithm one bucket has 3 elements. It makes it easier to describe. Normal
+buckets are 32 or 64 bits long (int/long).
+
+=== Tree structure
+
+[ditaa]
+----
+                +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+            +-----+-----+-----+
+Array Index ->  |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  | .......... |  24 |  25 | 26  |
+                +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+            +-----+-----+-----+
+Array
+ Dim:
++---+           +-----+
+| 0 |  ------>  | 101 |
++---+           +-----+-----+-----+
+| 1 |  ------>  | 110 | 000 | 001 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 010 | 100 | 000 | 000 | 000 | 000 | 000 | 000 | 001 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+             +-----+-----+-----+
+| 3 |  ------>  | 000 | 101 | 000 | 101 | 000 | 000 | 000 | 000 | 000 | 101 |             | 000 | 000 | 001 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+  .......... +-----+-----+-----+
+----
+
+Above IdManager contains 5 elements (3, 5, 9, 11, 80):
+
+1. 0 * 3^0 + 1 * 3^1 + 0 * 3^2 + 0 * 3^3 = 0 + 3 + 0 + 0 = 3
+1. 2 * 3^0 + 1 * 3^1 + 0 * 3^2 + 0 * 3^3 = 2 + 3 + 0 + 0 = 5
+1. 0 * 3^0 + 0 * 3^1 + 1 * 3^2 + 0 * 3^3 = 0 + 0 + 9 + 0 = 9
+1. 2 * 3^0 + 0 * 3^1 + 1 * 3^2 + 0 * 3^3 = 2 + 0 + 9 + 0 = 11
+1. 2 * 3^0 + 2 * 3^1 + 2 * 3^2 + 2 * 3^3 = 2 + 6 + 18 + 54 = 80
+
+
+
+
+IdManager is organised as tree where each node maintains constant amount of bits. In this description - there are 3 bits.
+It differs from normal Binary Tree or N-tree as there is no Node object with pointers to its children and parents.
+In IdManager child position is calculated.
+Each level contains array of all children of their parents (lower level). As any Node contains N number of bits (here - 3), each level
+size is greater by factor of N.
+In above:
+
+1. first level - one element
+1. second level - 3 elements
+1. third level - 9 elements
+1. fourth level - 27 elements
+1. fifth level - 81 elements
+
+Simply say - each level is next power of N.
+It virtually creates a specific tree but there is no ad-hos Node allocation during add() operation - each level is
+created and assign during any expand operation.
+
+Different from BTree, any higher level doesn't contain real value - it just maintains information that child contains clue about possible position of the value in lover level.
+Last level contains leafs (and real values added to the structure). Value added to IdManager is stored as byte set on
+the value position (like in normal BitSet).
+
+In normal BitSet, you can set two values: 1 000 000 and 10 000 000.
+But how to check later what values are set in such BitSet? The only solution is to iterate over all long elements
+to see where bits are set. Relativly quick loop can be done a bit better.
+The IdManger lower's level store information in same way as normal BitSet. All higher levels create a path to
+fast search any value already set.
+Instead of linear loop over all longs in BitSet, IdManager offers  complexity for searching set values:
+
+[latexmath]
+++++
+\log_{64} (max(N))
+++++
+
+max(N) - maximum value stored in IdManager
+
+To explain the power of this search, let think about Long.MAX_VALUE. If you store this value in IdManager - the full
+path has height of 11 levels. In short, the worst case scenario in Java world to store primitives, checking
+if value is present, requires 11 checks (can be considered constant in case for linear scan of normal BitSet :D )
+
+=== Expand
+=== Allocate
+=== Free
+=== Checking allocation
+
 == Usage
 == API
 
@@ -148,7 +227,39 @@ than one version (depending on purpose)
 
 [source,java]
 ----
-include::./src/test/java/pl/moskitek/idmanager/usecase/instantiate/DefaultIdManager.java[]
+	@Test
+	public void instantiateDefault() {
+		IdManager idMgr = IdManager.builder().build();
+	}
+	@Test
+	public void instantiateDefaultExplicit() {
+		IdManager idMgr = IdManager.builder()
+				.organization(Organisation.longBits)
+				.purpose(Purpose.Minimum)
+				.build();
+	}
+	@Test
+	public void instantiate64BitsIdManagerForMax() {
+		IdManager idMgr = IdManager.builder()
+				.organization(Organisation.longBits)
+				.purpose(Purpose.Maximum)
+				.build();
+	}
+	@Test
+	public void instantiate32BitsIdManagerForMinMax() {
+		IdManager idMgr = IdManager.builder()
+				.organization(Organisation.intBits)
+				.purpose(Purpose.MinMax)
+				.build();
+	}
+
+	@Test
+	public void instantiateJavaBasedIdManager() {
+		IdManager idMgr = IdManager.builder()
+				.organization(Organisation.javaBased)
+				.purpose(Purpose.MinMax)
+				.build();
+	}
 ----
 
 Description for available options below:
@@ -156,24 +267,141 @@ Description for available options below:
 [source,java]
 .Ogranisation
 ----
-include::./src/main/java/pl/moskitek/idmanager/Organisation.java[]
+package pl.moskitek.idmanager;
+
+/**
+ * Organization describes what data structure is used to store data.
+ *
+ * @author moskitek
+ */
+public enum Organisation{
+	/**
+	 * BitSet tree is built using java long (64 bits per one bucket)
+	 */
+	longBits,
+	/**
+	 * same as above but used ints (32 bits per bucket)
+	 */
+	intBits,
+	/**
+	 * implementation uses java.util.BitSet for all operation.
+	 * This version is used mainly for validation and performance tests
+	 */
+	javaBased
+}
+
 ----
 
 
 [source,java]
 .Purpose
 ----
-include::./src/main/java/pl/moskitek/idmanager/Organisation.java[]
+package pl.moskitek.idmanager;
+
+/**
+ * Organization describes what data structure is used to store data.
+ *
+ * @author moskitek
+ */
+public enum Organisation{
+	/**
+	 * BitSet tree is built using java long (64 bits per one bucket)
+	 */
+	longBits,
+	/**
+	 * same as above but used ints (32 bits per bucket)
+	 */
+	intBits,
+	/**
+	 * implementation uses java.util.BitSet for all operation.
+	 * This version is used mainly for validation and performance tests
+	 */
+	javaBased
+}
+
 ----
 
 === IdManager Operations
 
 [source,java]
-.Purpose
+.IdManager interface
 ----
-include::./src/main/java/pl/moskitek/idmanager/IdManager.java[]
-----
+public interface IdManager {
+	/**
+	 * Frees previously allocated number
+	 * @param id - previously allocated number
+	 */
+	void free(int id);
+	/**
+	 * Version of bulk free operation.
+	 * All items in array has to be previously allocated.
+	 *
+	 * @param ids - array of allocated ids
+	 */
+	void free(int[] ids);
+	/**
+	 * Allocate and returns one number. When there is no free in "operation
+	 * history" for that idManager, it has similar meaning as i++ (returns
+	 * next number).
+	 * This operation may result with extending the tree.
+	 *
+ 	 * @return next number (when no free has already been called), first gap
+ 	 * otherwise.
+	 */
+	int allocate();
+	/**
+	 * Bulk operation of allocate.
+	 *
+	 * @param length - number of elements to allocate
+	 * @return array of allocated numbers. Array is sorted in ascending order.
+	 * 		   Obviusly - as allocate always returns first gap, or next number.
+	 */
+	int[] allocate(int length);
+	/**
+	 * Checks id given number has been already  allocated.
+	 *
+	 * @param id number to check
+	 * @return true - if allocated, false if free
+	 */
+	boolean isAllocated( int id );
+	/**
+	 * Clear the idManager.
+	 */
+	void reset();
+	/**
+	 * Returns number of allocated elements.
+	 * @return Number of allocation - number of free operations
+	 */
+	int allocatedSize();
 
+
+	int nextSetBit(int id);
+	int prevSetBit(int id);
+
+	/**
+	 * Marks given id as allocated.
+	 * For example allocateConrete(1) and allocateConrete(100) creates a set with
+	 * positions 2..99 set to zero, and it can be considered as big gap. Next allocate()
+	 * returns 2
+	 *
+	 * @param id - number to mark
+	 */
+	void allocateConrete(int id);
+
+	/**
+	 * Cloning the instance. There is no connection between newly created clone
+	 */
+	public IdManager cloneTree( ) throws Exception;
+
+	/**
+	 * @return IdManager builder
+	 */
+	public static IdManagerBuilder builder() {
+		return new IdManagerBuilder();
+	}
+}
+
+----
 
 == Performance tests
 
