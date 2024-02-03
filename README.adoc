@@ -210,17 +210,423 @@ To explain the power of this search, let think about Long.MAX_VALUE. If you stor
 path has height of 11 levels. In short, the worst case scenario in Java world to store primitives, checking
 if value is present, requires 11 checks (can be considered constant in case for linear scan of normal BitSet :D )
 
+=== Allocate concrete number
+
+There are 2 methods for allocation:
+
+1. Allocate concrete number
+1. Allocate smallest free element
+
+Second method is described later as meaning of bits is a little diffrent than what was described above.
+
+For concrete number method is simple:
+
+[ditaa]
+----
+
+           +-------------------------------+
+           | Max value is higher than tree |<----------+
+           +-------------------------------+           |
+                          |                            |
+                          |        Yes          +------+------+
+                          +-------------------> | Expand tree |
+                          |                     +-------------+
+                          | No
+                          v
+                   +-------------+
+                   | Perform add |
+                   +-------------+
+----
+
+Adding value takes place from bottom to top.
+On next level, added value is divided by number of bits per bucket (3 in description)
+When next level is already set, marking the path can be stopped as all higher level are already marked.
+
+[ditaa]
+.Initial tree for adding value of 25
+----
+
+Array
+Dim:
++---+           +-----+
+| 0 |  ------>  | 110 |
++---+           +-----+
+                    |
+                    +-----+-----+
+                    |     |     |
+                    v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 000 |
++---+           +-----+-----+-----+
+                    |     |     |
+                    |     |     +----------------------+------+-----+
+                    |     |                            |      |     |
+                    |     |                            |      |     |
+                    |     +-----------+-----+-----+    |      |     |
+                    |                 |     |     |    |      |     |
+                    +-----+-----+     |     |     |    |      |     |
+                    |     |     |     |     |     |    |      |     |
+                    v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 000 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+[ditaa]
+.Tree after marking value 25 on lowest level (easy to calculate byte position)
+----
+
+Array
+Dim:
++---+           +-----+
+| 0 |  ------>  | 110 |
++---+           +-----+
+                    |
+                    +-----+-----+
+                    |     |     |
+                    v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 000 |
++---+           +-----+-----+-----+
+                    |     |     |
+                    |     |     +----------------------+------+-----+
+                    |     |                            |      |     |
+                    |     |                            |      |     |
+                    |     +-----------+-----+-----+    |      |     |
+                    |                 |     |     |    |      |     |
+                    +-----+-----+     |     |     |    |      |     |
+                    |     |     |     |     |     |    |      |     |
+                    v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 010 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+[ditaa]
+.Tree after marking value 25 on middle level ( 25 / 3 = 8 )
+----
+
+Array
+Dim:
++---+           +-----+
+| 0 |  ------>  | 110 |
++---+           +-----+
+                    |
+                    +-----+-----+
+                    |     |     |
+                    v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 001 |
++---+           +-----+-----+-----+
+                    |     |     |
+                    |     |     +----------------------+------+-----+
+                    |     |                            |      |     |
+                    |     |                            |      |     |
+                    |     +-----------+-----+-----+    |      |     |
+                    |                 |     |     |    |      |     |
+                    +-----+-----+     |     |     |    |      |     |
+                    |     |     |     |     |     |    |      |     |
+                    v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 010 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+[ditaa]
+.Tree after marking value 25 on root level ( ((25 / 3) / 3) = 2 )
+----
+
+Array
+Dim:
++---+           +-----+
+| 0 |  ------>  | 111 |
++---+           +-----+
+                    |
+                    +-----+-----+
+                    |     |     |
+                    v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 001 |
++---+           +-----+-----+-----+
+                    |     |     |
+                    |     |     +----------------------+------+-----+
+                    |     |                            |      |     |
+                    |     |                            |      |     |
+                    |     +-----------+-----+-----+    |      |     |
+                    |                 |     |     |    |      |     |
+                    +-----+-----+     |     |     |    |      |     |
+                    |     |     |     |     |     |    |      |     |
+                    v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 010 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+
 === Expand
-=== Allocate
+
+Tree expands up. That is, when new element needs to be added and tree is already full, new level is added on top of current level:
+
+[ditaa]
+----
+1) Tree with 3 elements:
+Array
+ Dim:
++---+           +-----+
+| 0 |  ------>  | 111 |
++---+           +-----+
+
+2) Added next element:
+Array
+ Dim:
++---+           +-----+
+| 0 |  ------>  | 110 |
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 000 |
++---+           +-----+-----+-----+
+
+3) After adding yet another 3 elements:
+Array
+ Dim:
++---+           +-----+
+| 0 |  ------>  | 111 |
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 111 | 100 |
++---+           +-----+-----+-----+
+
+4) After adding next 2 elements:
+Array
+ Dim:
++---+           +-----+
+| 0 |  ------>  | 111 |
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 111 | 111 |
++---+           +-----+-----+-----+
+
+5) After adding next element to already full tree:
+Array
+ Dim:
++---+           +-----+
+| 0 |  ------>  | 110 |
++---+           +-----+
+                   |
+                   +-----+-----+
+                   |     |     |
+                   v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 000 |
++---+           +-----+-----+-----+
+                   |     |     |
+                   |     |     +----------------------+------+-----+
+                   |     |                            |      |     |
+                   |     |                            |      |     |
+                   |     +-----------+-----+-----+    |      |     |
+                   |                 |     |     |    |      |     |
+                   +-----+-----+     |     |     |    |      |     |
+                   |     |     |     |     |     |    |      |     |
+                   v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 000 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+As shown in above picture, expand takes place in case 2) and 5). +
+During expand, one new element is added on top of current tree. Its first element is marked as 1 to denote that below tree has values. +
+After expand, new element is added in normal "way" described above.
+
 === Free
+
+The free operation is the contrary of allocate concrete number. +
+Similar to allocate, free starts from leaf level. +
+Marks the bits as 0, then algorithm go up to mark higher level's (when needed). +
+When there is no change in particular level during freeing, freeing can stop not reaching the
+root (as there will be no further changes)
+
+[ditaa]
+.Initial tree for freeing value of 25.
+----
+
+Array
+Dim:
++---+           +-----+
+| 0 |  ------>  | 111 |
++---+           +-----+
+                    |
+                    +-----+-----+
+                    |     |     |
+                    v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 001 |
++---+           +-----+-----+-----+
+                    |     |     |
+                    |     |     +----------------------+------+-----+
+                    |     |                            |      |     |
+                    |     |                            |      |     |
+                    |     +-----------+-----+-----+    |      |     |
+                    |                 |     |     |    |      |     |
+                    +-----+-----+     |     |     |    |      |     |
+                    |     |     |     |     |     |    |      |     |
+                    v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 010 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+[ditaa]
+.Tree after clearing leaf level
+----
+
+Array
+Dim:
++---+           +-----+
+| 0 |  ------>  | 111 |
++---+           +-----+
+                    |
+                    +-----+-----+
+                    |     |     |
+                    v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 001 |
++---+           +-----+-----+-----+
+                    |     |     |
+                    |     |     +----------------------+------+-----+
+                    |     |                            |      |     |
+                    |     |                            |      |     |
+                    |     +-----------+-----+-----+    |      |     |
+                    |                 |     |     |    |      |     |
+                    +-----+-----+     |     |     |    |      |     |
+                    |     |     |     |     |     |    |      |     |
+                    v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 000 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+[ditaa]
+.Tree after clearing middle level
+----
+
+Array
+Dim:
++---+           +-----+
+| 0 |  ------>  | 111 |
++---+           +-----+
+                    |
+                    +-----+-----+
+                    |     |     |
+                    v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 000 |
++---+           +-----+-----+-----+
+                    |     |     |
+                    |     |     +----------------------+------+-----+
+                    |     |                            |      |     |
+                    |     |                            |      |     |
+                    |     +-----------+-----+-----+    |      |     |
+                    |                 |     |     |    |      |     |
+                    +-----+-----+     |     |     |    |      |     |
+                    |     |     |     |     |     |    |      |     |
+                    v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 000 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+[ditaa]
+.Tree after clearing root level
+----
+
+Array
+Dim:
++---+           +-----+
+| 0 |  ------>  | 110 |
++---+           +-----+
+                    |
+                    +-----+-----+
+                    |     |     |
+                    v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 000 |
++---+           +-----+-----+-----+
+                    |     |     |
+                    |     |     +----------------------+------+-----+
+                    |     |                            |      |     |
+                    |     |                            |      |     |
+                    |     +-----------+-----+-----+    |      |     |
+                    |                 |     |     |    |      |     |
+                    +-----+-----+     |     |     |    |      |     |
+                    |     |     |     |     |     |    |      |     |
+                    v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 000 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+Higher level's bit is cleared only when lover level bits are all zeros (bucket is empty).
+
 === Checking allocation
+
+Checking allocation of concrete number is simple.
+When value to check is higher than tree max value it is obviously false with no check in arrays.
+When value to check is smaller than max value, the check is similar to what is done in
+"normal" BitSet - just check if bit set in its bucket
+
+[ditaa]
+----
+
+Array
+Dim:
++---+           +-----+
+| 0 |  ------>  | 111 |
++---+           +-----+
+                    |
+                    +-----+-----+
+                    |     |     |
+                    v     v     v
++---+           +-----+-----+-----+
+| 1 |  ------>  | 111 | 100 | 001 |
++---+           +-----+-----+-----+
+                    |     |     |
+                    |     |     +----------------------+------+-----+
+                    |     |                            |      |     |
+                    |     |                            |      |     |
+                    |     +-----------+-----+-----+    |      |     |
+                    |                 |     |     |    |      |     |
+                    +-----+-----+     |     |     |    |      |     |
+                    |     |     |     |     |     |    |      |     |
+                    v     v     v     v     v     v    v      v     v
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+| 2 |  ------>  | 111 | 111 | 111 | 100 | 000 | 000 | 000 | 000 | 010 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+                | 012 | 345 | 678 | 901 | 234 | 567 | 890 | 123 | 456 |
++---+           +-----+-----+-----+-----+-----+-----+-----+-----+-----+
+----
+
+Examples: +
+LeafLevel = 2 +
+NB = 3, number of bits per bucket +
+
+isAllocated( 4 ) +
+BucketIdx [**Bidx**]: 4 / NB = 1 +
+Bit position [**Pos**]: 4 - ( NB * Bidx) = 1 +
+return Array[ **LeafLevel** ][ **Bidx** ] & Pos ;  -> true +
+
+isAllocated( 25 ) +
+ BucketIdx [**Bidx**]: 25 / NB = 8 +
+Bit position [**Pos**]: 25 - ( NB * Bidx) = 25 - ( 3 * 8 ) = 1 +
+return Array[ LeafLevel ][ Bidx ] & Pos ;  -> true +
+
+
+isAllocated( 16 ) +
+BucketIdx [**Bidx**]: 16 / NB = 5 +
+Bit position [**Pos**]: 16 - ( NB * Bidx) = 16 - ( 3 * 5 ) = 1 +
+return Array[ LeafLevel ][ Bidx ] & Pos ;  -> false +
 
 == Usage
 == API
 
-API of IdMAnager is very simple. Library offers few methods for manipulation of
-data structure nad few simple way to instantiate IdManagers as tehre are more
-than one version (depending on purpose)
+API of IdMAnager is very simple. Library offers few methods for data structure's manipulation
+ and few simple way to instantiate IdManagers as there are more than one version (depending on purpose)
 
 
 === Instantiate IdManager
