@@ -29,5 +29,6 @@ replay_pid*
 *.prefs
 /.idea
 /.asciidoctor
+src/docs/asciidoc/.asciidoctor
 /diag-*.png
 /README.html
