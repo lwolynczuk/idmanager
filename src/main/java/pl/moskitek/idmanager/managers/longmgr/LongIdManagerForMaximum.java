@@ -1,13 +1,15 @@
 package pl.moskitek.idmanager.managers.longmgr;
 
+import pl.moskitek.idmanager.IdManagerException;
+
 public class LongIdManagerForMaximum extends AbstractLongIdMgr{
 	@Override
 	public int allocate() {
-		throw new RuntimeException("This manager is for next, not allowed call.");
+		throw new IdManagerException("This manager is for next, not allowed call.");
 	}
 	@Override
 	public int[] allocate(int length) {
-		throw new RuntimeException("This manager is for next, not allowed call.");
+		throw new IdManagerException("This manager is for next, not allowed call.");
 	}
 
 	private long searchMinSetBit( final int height, final int bucketIdx ){
@@ -130,7 +132,7 @@ public class LongIdManagerForMaximum extends AbstractLongIdMgr{
 	@Override
 	public void free( int id ){
 		if( id < 0 ){
-			throw new RuntimeException("Id must be above 0, you try to free: " + id );
+			throw new IdManagerException("Id must be above 0, you try to free: " + id );
 		}
 		initialLoad = false;
 		currentSize--;
@@ -144,7 +146,7 @@ public class LongIdManagerForMaximum extends AbstractLongIdMgr{
 
 
 		if( (longTree[currentTreeLevel - height][currentBucket] & currentIdx ) == 0 ){
-			throw new RuntimeException("Trying to free bit that is not set: " + id + ", on level: " + ( currentTreeLevel - height) + ", with maxTreeLEvel: " + currentTreeLevel);
+			throw new IdManagerException("Trying to free bit that is not set: " + id + ", on level: " + ( currentTreeLevel - height) + ", with maxTreeLEvel: " + currentTreeLevel);
 		}
 		longTree[ currentTreeLevel - height ][ currentBucket ] &= ~currentIdx;
 		final boolean emptyAfterOperation = longTree[currentTreeLevel - height][ currentBucket] == 0;

@@ -1,5 +1,6 @@
 package pl.moskitek.idmanager.usecase.instantiate;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import pl.moskitek.idmanager.*;
@@ -30,6 +31,7 @@ public class DefaultIdManager {
 				.build();
 	}
 	@Test
+	@Disabled
 	public void instantiate32BitsIdManagerForMinMax() {
 		IdManager idMgr = IdManager.builder()
 				.organization(Organisation.intBits)

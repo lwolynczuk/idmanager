@@ -1,4 +1,4 @@
-package pl.moskitek.idmanager.usecase;
+package pl.moskitek.idmanager.usecase.usage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,7 +19,7 @@ public class LongMinimumIdManagerTest {
 					.build();
 		
 		for( int i = 0; i < 10000; i++ ) {
-			idMgr.allocate();
+			int al = idMgr.allocate();
 		}
 	}
 

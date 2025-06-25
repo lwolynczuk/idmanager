@@ -3,6 +3,7 @@ package pl.moskitek.idmanager.managers.java;
 import java.util.BitSet;
 
 import pl.moskitek.idmanager.IdManager;
+import pl.moskitek.idmanager.IdManagerException;
 
 /**
  * Simple implementation with Java BitSet implementation.
@@ -71,7 +72,7 @@ public class JavaBitSetIdManager implements IdManager{
 	@Override
 	public void free(int id){
 		if( !bSet.get(id)){
-			throw new RuntimeException("Attempt to free position that is not set: " + id);
+			throw new IdManagerException("Attempt to free position that is not set: " + id);
 		}
 		allocatedSize--;
 		bSet.clear(id);

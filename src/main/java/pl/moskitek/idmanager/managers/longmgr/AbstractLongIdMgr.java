@@ -3,6 +3,7 @@ package pl.moskitek.idmanager.managers.longmgr;
 import java.util.Arrays;
 
 import pl.moskitek.idmanager.IdManager;
+import pl.moskitek.idmanager.IdManagerException;
 
 public abstract class AbstractLongIdMgr implements IdManager{
 	protected static final long REST_MASK = Long.parseLong("111111", 2);
@@ -128,10 +129,10 @@ public abstract class AbstractLongIdMgr implements IdManager{
 	@Override
 	public void allocateConrete(int id) {
 		if( id < 0 ){
-			throw new RuntimeException("Id must be above 0, you try to set concreteId: " + id );
+			throw new IdManagerException("Id must be above 0, you try to set concreteId: " + id );
 		}
 		if( id > ((Integer.MAX_VALUE - 5 ) * 64L ) ){
-			throw new RuntimeException(String.format( "You try to allocate value above limit: %d, where max is: %d ", id, ( Integer.MAX_VALUE - 5 ) * 64 ) );
+			throw new IdManagerException(String.format( "You try to allocate value above limit: %d, where max is: %d ", id, ( Integer.MAX_VALUE - 5 ) * 64 ) );
 		}
 		int maxHeight = 1;
 		for( long i = 64; i <= id; i *= 64, maxHeight++ );

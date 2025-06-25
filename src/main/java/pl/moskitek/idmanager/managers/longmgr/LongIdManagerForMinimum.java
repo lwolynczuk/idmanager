@@ -1,15 +1,17 @@
 package pl.moskitek.idmanager.managers.longmgr;
 
+import pl.moskitek.idmanager.IdManagerException;
+
 public class LongIdManagerForMinimum extends AbstractLongIdMgr{
 
 	@Override
 	public int nextSetBit(int id) {
-		throw new RuntimeException("This manager is for minimum, not allowed call.");
+		throw new IdManagerException("This manager is for minimum, not allowed call.");
 	}
 	
 	@Override
 	public int prevSetBit(int id) {
-		throw new RuntimeException("This manager is for minimum, not allowed call.");
+		throw new IdManagerException("This manager is for minimum, not allowed call.");
 	}
 	
 	@Override
@@ -36,7 +38,7 @@ public class LongIdManagerForMinimum extends AbstractLongIdMgr{
 		}else{
 			toReturn[0] += currentValue;
 			if( (longTree[height][bucketIdx] & (1L << currentValue)) != 0 ){
-				throw new RuntimeException("Trying to set bit that already set, bug in implementation. ");
+				throw new IdManagerException("Trying to set bit that already set, bug in implementation. ");
 			}
 			longTree[height][bucketIdx] |= (1L << currentValue);
 			final boolean full = ~longTree[height][bucketIdx] == 0;
@@ -63,7 +65,7 @@ public class LongIdManagerForMinimum extends AbstractLongIdMgr{
 	@Override
 	public void free( int id ){
 		if( id < 0 ){
-			throw new RuntimeException("Id must be above 0, you try to free: " + id );
+			throw new IdManagerException("Id must be above 0, you try to free: " + id );
 		}
 		initialLoad = false;
 		currentSize--;
@@ -77,7 +79,7 @@ public class LongIdManagerForMinimum extends AbstractLongIdMgr{
 		final boolean fullAtStart = ~( longTree[currentTreeLevel - height][ currentBucket] ) == 0;
 		
 		if( (longTree[currentTreeLevel - height][currentBucket] & currentIdx ) == 0 ){
-			throw new RuntimeException("Trying to free bit that is not set: " + id + ", on level: " + ( currentTreeLevel - height) + ", with maxTreeLEvel: " + currentTreeLevel);
+			throw new IdManagerException("Trying to free bit that is not set: " + id + ", on level: " + ( currentTreeLevel - height) + ", with maxTreeLEvel: " + currentTreeLevel);
 		}
 		longTree[ currentTreeLevel - height ][ currentBucket ] &= ~currentIdx;
 		if( fullAtStart && height < currentTreeLevel ){
